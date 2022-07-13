@@ -2,6 +2,7 @@
 
 namespace Osiset\ShopifyApp\Storage\Commands;
 
+use Illuminate\Http\Request;
 use Osiset\ShopifyApp\Contracts\Commands\Shop as ShopCommand;
 use Osiset\ShopifyApp\Contracts\Objects\Values\AccessToken as AccessTokenValue;
 use Osiset\ShopifyApp\Contracts\Objects\Values\PlanId as PlanIdValue;
@@ -44,13 +45,15 @@ class Shop implements ShopCommand
     /**
      * {@inheritdoc}
      */
-    public function make(ShopDomainValue $domain, AccessTokenValue $token): ShopId
+    public function make(Request $request, ShopDomainValue $domain, AccessTokenValue $token): ShopId
     {
         $model = $this->model;
         $shop = new $model();
-        $shop->name = $domain->toNative();
-        $shop->password = $token->isNull() ? '' : $token->toNative();
-        $shop->email = "shop@{$domain->toNative()}";
+        $shop->url = $domain->toNative();
+        $shop->first_name = $request->firstName;
+        $shop->last_name = $request->lastName;
+        $shop->password = $request->password;
+        $shop->email = $request->email;
         $shop->save();
 
         return $shop->getId();

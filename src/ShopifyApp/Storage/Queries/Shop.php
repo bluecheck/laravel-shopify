@@ -61,7 +61,7 @@ class Shop implements IShopQuery
 
         return $result
             ->get()
-            ->where('name', $domain->toNative())
+            ->where('url', $domain->toNative())
             ->first();
     }
 

@@ -57,7 +57,7 @@ trait ShopModel
      */
     public function getDomain(): ShopDomainValue
     {
-        return new ShopDomain($this->name);
+        return new ShopDomain($this->url);
     }
 
     /**

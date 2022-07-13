@@ -2,6 +2,7 @@
 
 namespace Osiset\ShopifyApp\Contracts\Commands;
 
+use Illuminate\Http\Request;
 use Osiset\ShopifyApp\Contracts\Objects\Values\AccessToken as AccessTokenValue;
 use Osiset\ShopifyApp\Contracts\Objects\Values\PlanId as PlanIdValue;
 use Osiset\ShopifyApp\Contracts\Objects\Values\ShopDomain as ShopDomainValue;
@@ -17,7 +18,7 @@ interface Shop
      *
      * @return ShopId
      */
-    public function make(ShopDomainValue $domain, AccessTokenValue $token): ShopId;
+    public function make(Request $request, ShopDomainValue $domain, AccessTokenValue $token): ShopId;
 
     /**
      * Sets a plan to a shop, meanwhile cancelling freemium.

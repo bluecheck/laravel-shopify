@@ -2,6 +2,7 @@
 
 namespace Osiset\ShopifyApp\Actions;
 
+use Illuminate\Http\Request;
 use stdClass;
 use Osiset\ShopifyApp\Services\ShopSession;
 use Osiset\ShopifyApp\Objects\Enums\AuthMode;
@@ -66,13 +67,13 @@ class AuthorizeShop
      *
      * @return stdClass
      */
-    public function __invoke(ShopDomain $shopDomain, ?string $code): stdClass
+    public function __invoke(Request $request, ShopDomain $shopDomain, ?string $code): stdClass
     {
         // Get the shop
         $shop = $this->shopQuery->getByDomain($shopDomain, [], true);
         if ($shop === null) {
             // Shop does not exist, make them and re-get
-            $this->shopCommand->make($shopDomain, new NullAccessToken(null));
+            $this->shopCommand->make($request, $shopDomain, new NullAccessToken(null));
             $shop = $this->shopQuery->getByDomain($shopDomain);
         }
         $apiHelper = $shop->apiHelper();

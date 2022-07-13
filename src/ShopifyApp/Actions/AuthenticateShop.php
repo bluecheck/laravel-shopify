@@ -97,9 +97,10 @@ class AuthenticateShop
         // Setup
         $shopDomain = new ShopDomain($request->get('shop'));
         $code = $request->get('code');
-
+        
         // Run the check
-        $result = call_user_func($this->authorizeShopAction, $shopDomain, $code);
+        
+        $result = call_user_func($this->authorizeShopAction, $request, $shopDomain, $code);
         if (!$result->completed) {
             // No code, redirect to auth URL
             return [$result, false];
