@@ -61,7 +61,7 @@ class Charge implements IChargeQuery
     {
         return $this->chargeModel->query()
             ->where('charge_id', $chargeRef->toNative())
-            ->where('user_id', $shopId->toNative())
+            ->where(Util::getShopifyConfig('column_names.user_id') ?? 'user_id', $shopId->toNative())
             ->get()
             ->first();
     }

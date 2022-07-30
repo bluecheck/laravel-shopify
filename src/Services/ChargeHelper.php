@@ -237,7 +237,7 @@ class ChargeHelper
             ->charges()
             ->withTrashed()
             ->whereIn('type', [ChargeType::RECURRING()->toNative(), ChargeType::CHARGE()->toNative()])
-            ->where('plan_id', $planId->toNative())
+            ->where(Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id', $planId->toNative())
             ->orderBy('created_at', 'desc')
             ->first();
     }

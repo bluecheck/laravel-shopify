@@ -51,9 +51,11 @@ class Charge implements ChargeCommand
         };
 
         $chargeClass = Util::getShopifyConfig('models.charge', ChargeModel::class);
+        $planColumn = Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id';
+        $userColumn = Util::getShopifyConfig('column_names.user_id') ?? 'user_id';
         $charge = new $chargeClass();
-        $charge->plan_id = $chargeObj->planId->toNative();
-        $charge->user_id = $chargeObj->shopId->toNative();
+        $charge->$planColumn = $chargeObj->planId->toNative();
+        $charge->$userColumn = $chargeObj->shopId->toNative();
         $charge->charge_id = $chargeObj->chargeReference->toNative();
         $charge->type = $chargeObj->chargeType->toNative();
         $charge->status = $chargeObj->chargeStatus->toNative();
@@ -92,7 +94,8 @@ class Charge implements ChargeCommand
         // Create the charge
         $chargeClass = Util::getShopifyConfig('models.charge', ChargeModel::class);
         $charge = new $chargeClass();
-        $charge->user_id = $chargeObj->shopId->toNative();
+        $userColumn = Util::getShopifyConfig('column_names.user_id') ?? 'user_id';
+        $charge->$userColumn = $chargeObj->shopId->toNative();
         $charge->charge_id = $chargeObj->chargeReference->toNative();
         $charge->type = $chargeObj->chargeType->toNative();
         $charge->status = $chargeObj->chargeStatus->toNative();

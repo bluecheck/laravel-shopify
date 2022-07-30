@@ -440,7 +440,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Customize Models and Table Name
+    | Customize Models, Table Names and Column Names
     |--------------------------------------------------------------------------
     |
     | You can customize you model and extend them
@@ -470,5 +470,17 @@ return [
         * The table name for Plan model.
         */
         'plans' => 'plans',
+    ],
+
+    'column_names' => [
+        /*
+        * The column name pointing to Plan.
+        */
+        'plan_id' => 'plan_id',
+
+        /*
+        * The column name pointing to User/Shop.
+        */
+        'user_id' => 'user_id',
     ]
 ];
