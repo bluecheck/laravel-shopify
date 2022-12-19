@@ -291,6 +291,7 @@ class VerifyShopify
             Util::getShopifyConfig('route_names.authenticate.token'),
             [
                 'shop' => ShopDomain::fromRequest($request)->toNative(),
+                'host' => $request->get('host') ?? base64_encode(ShopDomain::fromRequest($request)->toNative()),
                 'target' => $target,
             ]
         );
@@ -307,7 +308,10 @@ class VerifyShopify
     {
         return Redirect::route(
             Util::getShopifyConfig('route_names.authenticate'),
-            ['shop' => $shopDomain->toNative()]
+            [
+                'shop' => $shopDomain->toNative(),
+                'host' => $request->get('host') ?? base64_encode($shopDomain->toNative()),
+            ]
         );
     }
 
