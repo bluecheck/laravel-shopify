@@ -310,7 +310,7 @@ class VerifyShopify
             Util::getShopifyConfig('route_names.authenticate'),
             [
                 'shop' => $shopDomain->toNative(),
-                'host' => $request->get('host') ?? base64_encode($shopDomain->toNative()),
+                'host' => base64_encode($shopDomain->toNative()),
             ]
         );
     }
