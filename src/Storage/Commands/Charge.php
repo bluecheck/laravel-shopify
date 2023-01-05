@@ -53,8 +53,9 @@ class Charge implements ChargeCommand
         $shopTableId = Util::getShopsTableForeignKey();
 
         $chargeClass = Util::getShopifyConfig('models.charge', ChargeModel::class);
+        $planColumn = Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id';
         $charge = new $chargeClass();
-        $charge->plan_id = $chargeObj->planId->toNative();
+        $charge->$planColumn = $chargeObj->planId->toNative();
         $charge->$shopTableId = $chargeObj->shopId->toNative();
         $charge->charge_id = $chargeObj->chargeReference->toNative();
         $charge->type = $chargeObj->chargeType->toNative();

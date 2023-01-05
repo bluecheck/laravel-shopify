@@ -26,7 +26,6 @@ class Charge extends Model
     protected $fillable = [
         'type',
         'charge_id',
-        'plan_id',
         'status',
     ];
 
@@ -48,10 +47,13 @@ class Charge extends Model
      */
     protected $dates = ['deleted_at'];
 
+    /**
+     * Init for charge model.
+     */
     public function __construct(array $attributes = [])
     {
         $this->fillable[] = Util::getShopsTableForeignKey();
-
+		$this->fillable[] = Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id';
         parent::__construct($attributes);
     }
 

@@ -61,7 +61,8 @@ class Shop implements ShopCommand
     public function setToPlan(ShopIdValue $shopId, PlanIdValue $planId): bool
     {
         $shop = $this->getShop($shopId);
-        $shop->plan_id = $planId->toNative();
+        $planColumn = Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id';
+        $shop->$planColumn = $planId->toNative();
         $shop->shopify_freemium = false;
 
         return $shop->save();
@@ -85,8 +86,9 @@ class Shop implements ShopCommand
     public function clean(ShopIdValue $shopId): bool
     {
         $shop = $this->getShop($shopId);
+        $planColumn = Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id';
         $shop->password = '';
-        $shop->plan_id = null;
+        $shop->$planColumn = null;
 
         return $shop->save();
     }
