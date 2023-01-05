@@ -477,6 +477,13 @@ return [
         'shops' => 'users',
     ],
 
+    'column_names' => [
+        /*
+        * The column name pointing to Plan.
+        */
+        'plan_id' => 'plan_id',
+    ],
+
     'session_token_refresh_interval' => env('SESSION_TOKEN_REFRESH_INTERVAL', 2000),
 
     /*
