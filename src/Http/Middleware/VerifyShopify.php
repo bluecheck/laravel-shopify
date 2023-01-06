@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Request as RequestFacade;
 use Illuminate\Support\Str;
 use Osiset\ShopifyApp\Contracts\ApiHelper as IApiHelper;
 use Osiset\ShopifyApp\Contracts\Objects\Values\ShopDomain as ShopDomainValue;
@@ -284,6 +285,7 @@ class VerifyShopify
         if ($request->query()) {
             $filteredQuery = Collection::make($request->query())->except([
                 'hmac',
+                'host',
                 'locale',
                 'new_design_language',
                 'timestamp',
@@ -300,6 +302,7 @@ class VerifyShopify
             Util::getShopifyConfig('route_names.authenticate.token'),
             [
                 'shop' => ShopDomain::fromRequest($request)->toNative(),
+                'host' => $request->get('host') ?? base64_encode(ShopDomain::fromRequest($request)->toNative()),
                 'target' => $target,
             ]
         );
@@ -316,7 +319,10 @@ class VerifyShopify
     {
         return Redirect::route(
             Util::getShopifyConfig('route_names.authenticate'),
-            ['shop' => $shopDomain->toNative()]
+            [
+                'shop' => $shopDomain->toNative(),
+                'host' => RequestFacade::get('host') ?? base64_encode($shopDomain->toNative()),
+            ]
         );
     }
 
