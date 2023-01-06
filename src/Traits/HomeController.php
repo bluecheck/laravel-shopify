@@ -20,9 +20,13 @@ trait HomeController
      */
     public function index(Request $request): ViewView
     {
+        $user = $request->user();
         return View::make(
             'shopify-app::home.index',
-            ['shop' => $request->user()]
+            [
+                'shop' => $user,
+                'host' => $request->get('host') ?? $user->host
+            ]
         );
     }
 }
