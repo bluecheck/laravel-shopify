@@ -25,6 +25,7 @@ trait HomeController
             'shopify-app::home.index',
             [
                 'shop' => $user,
+                'shopDomain' => $user->name,
                 'host' => $request->get('host') ?? $user->host
             ]
         );
