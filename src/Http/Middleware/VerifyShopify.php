@@ -298,11 +298,22 @@ class VerifyShopify
             }
         }
 
+        $shopDomain = ShopDomain::fromRequest($request);
+        $nativeShopDomain = $shopDomain->toNative();
+        $shop = $this->shopQuery->getByDomain($shopDomain, [], true);
+        $host = $request->get('host');
+        if (!$host && $shop) {
+            $host = $shop->host;
+        }
+        if (!$host) {
+            $host = base64_encode($nativeShopDomain);
+        }
+
         return Redirect::route(
             Util::getShopifyConfig('route_names.authenticate.token'),
             [
-                'shop' => ShopDomain::fromRequest($request)->toNative(),
-                'host' => $request->get('host') ?? base64_encode(ShopDomain::fromRequest($request)->toNative()),
+                'shop' => $shopDomain,
+                'host' => $host,
                 'target' => $target,
             ]
         );
@@ -317,11 +328,21 @@ class VerifyShopify
      */
     protected function installRedirect(ShopDomainValue $shopDomain): RedirectResponse
     {
+        $nativeShopDomain = $shopDomain->toNative();
+        $shop = $this->shopQuery->getByDomain($shopDomain, [], true);
+        $host = RequestFacade::get('host');
+        if (!$host && $shop) {
+            $host = $shop->host;
+        }
+        if (!$host) {
+            $host = base64_encode($nativeShopDomain);
+        }
+
         return Redirect::route(
             Util::getShopifyConfig('route_names.authenticate'),
             [
-                'shop' => $shopDomain->toNative(),
-                'host' => RequestFacade::get('host') ?? base64_encode($shopDomain->toNative()),
+                'shop' => $nativeShopDomain,
+                'host' => $host,
             ]
         );
     }
