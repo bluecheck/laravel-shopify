@@ -63,7 +63,7 @@ trait AuthController
                     'apiKey' => Util::getShopifyConfig('api_key', $shopOrigin),
                     'appBridgeVersion' => Util::getShopifyConfig('appbridge_version') ? '@'.config('shopify-app.appbridge_version') : '',
                     'authUrl' => $result['url'],
-                    'host' => $request->host ?? base64_encode($shopOrigin.'/admin'),
+                    'host' => $request->get('host') ?? $request->user()->host,
                     'shopDomain' => $shopDomain,
                     'shopOrigin' => $shopOrigin,
                 ]
@@ -74,7 +74,7 @@ trait AuthController
                 Util::getShopifyConfig('route_names.home'),
                 [
                     'shop' => $shopDomain->toNative(),
-                    'host' => $request->host,
+                    'host' => $request->get('host') ?? $request->user()->host,
                 ]
             );
         }

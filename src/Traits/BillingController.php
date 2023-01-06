@@ -80,7 +80,7 @@ trait BillingController
         if (!$request->has('charge_id')) {
             return Redirect::route(Util::getShopifyConfig('route_names.home'), [
                 'shop' => $shop->getDomain()->toNative(),
-                'host' => base64_encode($shop->getDomain()->toNative().'/admin'),
+                'host' => $request->get('host') ?? $shop->host,
             ]);
         }
         // Activate the plan and save
@@ -94,7 +94,7 @@ trait BillingController
         return Redirect::route(Util::getShopifyConfig('route_names.home'), array_merge([
             'shop' => $shop->getDomain()->toNative(),
         ], Util::useNativeAppBridge() ? [] : [
-            'host' => base64_encode($shop->getDomain()->toNative().'/admin'),
+            'host' => $request->get('host') ?? $shop->host,
             'billing' => $result ? 'success' : 'failure',
         ]))->with(
             $result ? 'success' : 'failure',
