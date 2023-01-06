@@ -83,6 +83,17 @@ class Shop implements ShopCommand
     /**
      * {@inheritdoc}
      */
+    public function setHost(ShopIdValue $shopId, string $host): bool
+    {
+        $shop = $this->getShop($shopId);
+        $shop->host = $host;
+
+        return $shop->save();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function clean(ShopIdValue $shopId): bool
     {
         $shop = $this->getShop($shopId);

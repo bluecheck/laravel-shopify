@@ -3,6 +3,7 @@
 namespace Osiset\ShopifyApp\Actions;
 
 use Exception;
+use Request;
 use Osiset\ShopifyApp\Contracts\Commands\Shop as IShopCommand;
 use Osiset\ShopifyApp\Contracts\Queries\Shop as IShopQuery;
 use Osiset\ShopifyApp\Objects\Enums\AuthMode;
@@ -57,9 +58,11 @@ class InstallShop
     {
         // Get the shop
         $shop = $this->shopQuery->getByDomain($shopDomain, [], true);
+        $host = Request::get('host') ?? null;
         if ($shop === null) {
             // Shop does not exist, make them and re-get
-            $this->shopCommand->make($shopDomain, NullAccessToken::fromNative(null));
+            $shopId = $this->shopCommand->make($shopDomain, NullAccessToken::fromNative(null));
+            $this->shopCommand->setHost($shopId, $host);
             $shop = $this->shopQuery->getByDomain($shopDomain);
         }
 
@@ -87,6 +90,7 @@ class InstallShop
             // Get the data and set the access token
             $data = $apiHelper->getAccessData($code);
             $this->shopCommand->setAccessToken($shop->getId(), AccessToken::fromNative($data['access_token']));
+            $this->shopCommand->setHost($shop->getId(), $host);
 
             return [
                 'completed' => true,
