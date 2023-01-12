@@ -98,7 +98,10 @@ trait ShopModel
      */
     public function plan(): BelongsTo
     {
-        return $this->belongsTo(Util::getShopifyConfig('models.plan', Plan::class));
+        return $this->belongsTo(
+            Util::getShopifyConfig('models.plan', Plan::class), 
+            Util::getShopifyConfig('column_names.plan_id','plan_id') 
+        );
     }
 
     /**
