@@ -285,13 +285,12 @@ class VerifyShopify
         if ($request->query()) {
             $filteredQuery = Collection::make($request->query())->except([
                 'hmac',
-                'host',
                 'locale',
                 'new_design_language',
                 'timestamp',
                 'session',
-                'shop',
             ]);
+            // removed host and shop 
 
             if ($filteredQuery->isNotEmpty()) {
                 $target .= '?'.http_build_query($filteredQuery->toArray());
