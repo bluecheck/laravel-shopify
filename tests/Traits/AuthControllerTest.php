@@ -20,14 +20,44 @@ class AuthControllerTest extends TestCase
 
     public function testAuthRedirectsToShopifyWhenNoCode(): void
     {
-        // Run the request
         $response = $this->call('post', '/authenticate', ['shop' => 'example.myshopify.com']);
 
-        // Check the redirect happens and location is set properly in the header.
-        $response->assertViewHas('shopDomain', 'example.myshopify.com');
-        $response->assertViewHas(
-            'authUrl',
-            'https://example.myshopify.com/admin/oauth/authorize?client_id='.Util::getShopifyConfig('api_key').'&scope=read_products%2Cwrite_products&redirect_uri=https%3A%2F%2Flocalhost%2Fauthenticate'
+        $response->assertRedirect();
+        $this->assertStringContainsString(
+            '/admin/oauth/authorize?client_id='.Util::getShopifyConfig('api_key').'&scope=read_products%2Cwrite_products&redirect_uri=https%3A%2F%2Flocalhost%2Fauthenticate',
+            $response->headers->get('Location')
+        );
+    }
+
+    public function testAuthEscapesIframeWhenEmbedded(): void
+    {
+        $response = $this->call('get', '/authenticate', [
+            'shop' => 'example.myshopify.com',
+            'embedded' => '1',
+            'host' => base64_encode('admin.shopify.com/store/example'),
+        ]);
+
+        $response->assertOk();
+        $response->assertView('shopify-app::auth.iframe_escape');
+        $escapeUrl = $response->viewData('escapeUrl');
+        $this->assertStringContainsString('/authenticate', $escapeUrl);
+        $this->assertStringContainsString('top_level=1', $escapeUrl);
+        $this->assertStringNotContainsString('oauth/authorize', $escapeUrl);
+    }
+
+    public function testAuthRedirectsToShopifyWhenEmbeddedAndTopLevel(): void
+    {
+        $response = $this->call('get', '/authenticate', [
+            'shop' => 'example.myshopify.com',
+            'embedded' => '1',
+            'top_level' => '1',
+            'host' => base64_encode('admin.shopify.com/store/example'),
+        ]);
+
+        $response->assertRedirect();
+        $this->assertStringContainsString(
+            '/admin/oauth/authorize?client_id='.Util::getShopifyConfig('api_key'),
+            $response->headers->get('Location')
         );
     }
 

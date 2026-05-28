@@ -54,20 +54,28 @@ trait AuthController
                 throw new MissingAuthUrlException('Missing auth url');
             }
 
-            $shopDomain = $shopDomain->toNative();
-            $shopOrigin = $shopDomain ?? $request->user()->name;
+            $nativeShopDomain = $shopDomain->toNative();
 
-            return View::make(
-                'shopify-app::auth.fullpage_redirect',
-                [
-                    'apiKey' => Util::getShopifyConfig('api_key', $shopOrigin),
-                    'appBridgeVersion' => Util::getShopifyConfig('appbridge_version') ? '@'.config('shopify-app.appbridge_version') : '',
-                    'authUrl' => $result['url'],
-                    'host' => $request->get('host') ?? $request->user()->host,
-                    'shopDomain' => $shopDomain,
-                    'shopOrigin' => $shopOrigin,
-                ]
-            );
+            $needsIframeEscape = Util::getShopifyConfig('appbridge_enabled')
+                && $request->get('embedded') === '1'
+                && !$request->boolean('top_level');
+
+            if ($needsIframeEscape) {
+                $escapeUrl = route(
+                    Util::getShopifyConfig('route_names.authenticate'),
+                    array_merge($request->query(), ['top_level' => 1])
+                );
+
+                return View::make(
+                    'shopify-app::auth.iframe_escape',
+                    [
+                        'apiKey' => Util::getShopifyConfig('api_key', $nativeShopDomain),
+                        'escapeUrl' => $escapeUrl,
+                    ]
+                );
+            }
+
+            return Redirect::away($result['url']);
         } else {
             // Go to home route
             return Redirect::route(
