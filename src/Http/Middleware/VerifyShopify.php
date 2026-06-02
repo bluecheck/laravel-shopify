@@ -294,7 +294,7 @@ class VerifyShopify
             ]);
 
             if ($filteredQuery->isNotEmpty()) {
-                $target .= '?'.http_build_query($filteredQuery->toArray());
+                $target .= '?' . http_build_query($filteredQuery->toArray());
             }
         }
 
@@ -312,7 +312,7 @@ class VerifyShopify
         return Redirect::route(
             Util::getShopifyConfig('route_names.authenticate.token'),
             [
-                'shop' => $shopDomain,
+                'shop' => $shopDomain->toNative(),
                 'host' => $host,
                 'target' => $target,
             ]
@@ -409,10 +409,10 @@ class VerifyShopify
                 return $newestToken;
             }
 
-            return $request->get('token');
+            return $request->get('id_token');
         }
 
-        return $this->isApiRequest($request) ? $request->bearerToken() : $request->get('token');
+        return $this->isApiRequest($request) ? $request->bearerToken() : $request->get('id_token');
     }
 
     /**
@@ -501,7 +501,7 @@ class VerifyShopify
          * @return string
          */
         $formatValue = function ($val): string {
-            return is_array($val) ? '["'.implode('", "', $val).'"]' : $val;
+            return is_array($val) ? '["' . implode('", "', $val) . '"]' : $val;
         };
 
         // Nested array
