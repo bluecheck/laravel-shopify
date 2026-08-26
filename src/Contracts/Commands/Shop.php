@@ -43,6 +43,25 @@ interface Shop
     public function setAccessToken(ShopIdValue $shopId, AccessTokenValue $token): bool;
 
     /**
+     * Sets an expiring offline access token and refresh token from Shopify OAuth.
+     *
+     * @param ShopIdValue      $shopId           The shop's ID.
+     * @param AccessTokenValue $token            The access token from Shopify OAuth.
+     * @param string           $refreshToken     The refresh token from Shopify OAuth.
+     * @param int              $expiresIn        Access token lifetime in seconds.
+     * @param int              $refreshExpiresIn Refresh token lifetime in seconds.
+     *
+     * @return bool
+     */
+    public function setExpiringAccessToken(
+        ShopIdValue $shopId,
+        AccessTokenValue $token,
+        string $refreshToken,
+        int $expiresIn,
+        int $refreshExpiresIn
+    ): bool;
+
+    /**
      * Cleans the shop's properties (token, plan).
      * Used for uninstalls.
      *

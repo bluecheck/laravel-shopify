@@ -13,10 +13,16 @@ class User extends Authenticatable implements IShopModel
     use ShopModel;
 
     protected $fillable = [
-        'name', 'email', 'password',
+        'name', 'email', 'password', 'refresh_token',
+        'access_token_expires_at', 'refresh_token_expires_at',
     ];
 
     protected $hidden = [
-        'password', 'remember_token',
+        'password', 'refresh_token', 'remember_token',
+    ];
+
+    protected $casts = [
+        'access_token_expires_at' => 'datetime',
+        'refresh_token_expires_at' => 'datetime',
     ];
 }

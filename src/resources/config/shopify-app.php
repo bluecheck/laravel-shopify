@@ -214,6 +214,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Expiring Offline Access Tokens
+    |--------------------------------------------------------------------------
+    |
+    | When true, OAuth authorization code exchange requests an expiring offline
+    | access token (expiring=1) and expects refresh_token + expiry fields.
+    | See: https://shopify.dev/docs/apps/build/authentication-authorization/migrate-to-expiring-offline-access-tokens
+    |
+    */
+
+    'api_expiring_offline_tokens' => (bool) env('SHOPIFY_API_EXPIRING_OFFLINE_TOKENS', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Shopify API Redirect
     |--------------------------------------------------------------------------
     |

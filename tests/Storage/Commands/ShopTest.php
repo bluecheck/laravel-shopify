@@ -55,16 +55,59 @@ class ShopTest extends TestCase
         );
     }
 
+    public function testSetExpiringAccessToken(): void
+    {
+        $shop = factory($this->model)->create();
+
+        $this->assertTrue(
+            $this->command->setExpiringAccessToken(
+                $shop->getId(),
+                AccessToken::fromNative('shpat_access'),
+                'shprt_refresh',
+                3600,
+                7776000
+            )
+        );
+
+        $shop->refresh();
+
+        $this->assertSame('shpat_access', $shop->password);
+        $this->assertSame('shprt_refresh', $shop->refresh_token);
+        $this->assertNotNull($shop->access_token_expires_at);
+        $this->assertNotNull($shop->refresh_token_expires_at);
+        $this->assertEqualsWithDelta(
+            $this->now->addSeconds(3600)->getTimestamp(),
+            $shop->access_token_expires_at->getTimestamp(),
+            2
+        );
+        $this->assertEqualsWithDelta(
+            $this->now->addSeconds(7776000)->getTimestamp(),
+            $shop->refresh_token_expires_at->getTimestamp(),
+            2
+        );
+    }
+
     public function testClean(): void
     {
         // Create a shop
         $shop = factory($this->model)->create([
             'plan_id' => PlanId::fromNative(1)->toNative(),
+            'refresh_token' => 'shprt_refresh',
+            'access_token_expires_at' => $this->now->addHour(),
+            'refresh_token_expires_at' => $this->now->addDays(90),
         ]);
 
         $this->assertTrue(
             $this->command->clean($shop->getId())
         );
+
+        $shop->refresh();
+
+        $this->assertEmpty($shop->password);
+        $this->assertNull($shop->refresh_token);
+        $this->assertNull($shop->access_token_expires_at);
+        $this->assertNull($shop->refresh_token_expires_at);
+        $this->assertNull($shop->plan);
     }
 
     public function testSoftDeleteAndRestore(): void
