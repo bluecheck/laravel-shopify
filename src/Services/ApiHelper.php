@@ -23,6 +23,7 @@ use Osiset\ShopifyApp\Objects\Transfers\UsageChargeDetails as UsageChargeDetails
 use Osiset\ShopifyApp\Objects\Values\ChargeReference;
 use Osiset\ShopifyApp\Objects\Values\NullableShopDomain;
 use Osiset\ShopifyApp\Util;
+use Psr\Http\Message\RequestInterface;
 
 /**
  * Basic helper class for API calls to Shopify.
@@ -71,7 +72,7 @@ class ApiHelper implements IApiHelper
                 new $sd()
             );
         }
-
+        $this->api->addMiddleware($this->ensureOfflineAccessTokenMiddleware(...));
         // Set session?
         if ($session !== null) {
             // Set the session to the shop's domain/token
@@ -575,6 +576,44 @@ class ApiHelper implements IApiHelper
         }
 
         return $response;
+    }
+
+    /**
+     * Refresh expiring offline access token before Admin API calls when configured.
+     */
+    protected function ensureOfflineAccessToken(): void
+    {
+        $interceptorClass = Util::getShopifyConfig('offline_token_interceptor');
+        if (empty($interceptorClass) || ! class_exists($interceptorClass)) {
+            return;
+        }
+
+        $session = $this->api->getSession();
+        if ($session === null || $session->getShop() === null) {
+            return;
+        }
+
+        $options = $this->api->getOptions();
+        $interceptor = app($interceptorClass);
+        $newToken = $interceptor->ensureFreshAccessToken(
+            $session->getShop(),
+            $options->getApiKey(),
+            $options->getApiSecret()
+        );
+
+        if ($newToken !== null && $newToken !== $session->getAccessToken()) {
+            $this->api->setSession(new Session($session->getShop(), $newToken));
+        }
+    }
+    /**
+     * @param callable(): mixed $handler
+     */
+    protected function ensureOfflineAccessTokenMiddleware(callable $handler): callable
+    {
+        return function (RequestInterface $request, array $options) use ($handler) {
+            $this->ensureOfflineAccessToken();
+            return $handler($request, $options);
+        };
     }
 
     /**

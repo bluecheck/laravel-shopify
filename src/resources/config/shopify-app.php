@@ -227,6 +227,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Offline Token Interceptor
+    |--------------------------------------------------------------------------
+    |
+    | FQCN of a class that refreshes expiring offline access tokens before
+    | Admin API calls. Set to null to disable.
+    |
+    */
+
+    'offline_token_interceptor' => env(
+        'SHOPIFY_OFFLINE_TOKEN_INTERCEPTOR',
+        \Shared\Services\Shopify\ExpiringOfflineAccessTokenInterceptor::class
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | Shopify API Redirect
     |--------------------------------------------------------------------------
     |
