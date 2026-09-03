@@ -2,11 +2,15 @@
 
 namespace Osiset\ShopifyApp\Test\Http\Middleware;
 
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Schema;
 use Osiset\ShopifyApp\Exceptions\HttpException;
 use Osiset\ShopifyApp\Exceptions\SignatureVerificationException;
 use Osiset\ShopifyApp\Http\Middleware\VerifyShopify;
 use Osiset\ShopifyApp\Test\TestCase;
+use Osiset\ShopifyApp\Test\Stubs\OfflineTokenInterceptorStub;
 
 class VerifyShopifyTest extends TestCase
 {
@@ -151,6 +155,90 @@ class VerifyShopifyTest extends TestCase
         // Run the middleware
         $result = $this->runMiddleware(VerifyShopify::class, $newRequest);
         $this->assertTrue($result[0]);
+    }
+
+    public function testExpiredRefreshTokenTriggersOfflineTokenInterceptor(): void
+    {
+        $this->ensureExpiringOfflineColumns();
+
+        factory($this->model)->create([
+            'name' => 'shop-name.myshopify.com',
+            'refresh_token' => 'refresh-token',
+            'refresh_token_expires_at' => Carbon::now()->subMinute(),
+        ]);
+
+        $this->app['config']->set('shopify-app.offline_token_interceptor', OfflineTokenInterceptorStub::class);
+        $this->app['config']->set('shopify-app.api_expiring_offline_tokens', true);
+        OfflineTokenInterceptorStub::reset();
+
+        $newRequest = $this->createAjaxRequestWithToken();
+        $result = $this->runMiddleware(VerifyShopify::class, $newRequest);
+
+        $this->assertTrue($result[0]);
+        $this->assertTrue(OfflineTokenInterceptorStub::$wasCalled);
+    }
+
+    public function testValidRefreshTokenSkipsOfflineTokenInterceptor(): void
+    {
+        $this->ensureExpiringOfflineColumns();
+
+        factory($this->model)->create([
+            'name' => 'shop-name.myshopify.com',
+            'refresh_token' => 'refresh-token',
+            'refresh_token_expires_at' => Carbon::now()->addDay(),
+        ]);
+
+        $this->app['config']->set('shopify-app.offline_token_interceptor', OfflineTokenInterceptorStub::class);
+        $this->app['config']->set('shopify-app.api_expiring_offline_tokens', true);
+        OfflineTokenInterceptorStub::reset();
+
+        $newRequest = $this->createAjaxRequestWithToken();
+        $result = $this->runMiddleware(VerifyShopify::class, $newRequest);
+
+        $this->assertTrue($result[0]);
+        $this->assertFalse(OfflineTokenInterceptorStub::$wasCalled);
+    }
+
+    public function testApiExpiringOfflineTokensDisabledSkipsInterceptor(): void
+    {
+        $this->ensureExpiringOfflineColumns();
+
+        factory($this->model)->create([
+            'name' => 'shop-name.myshopify.com',
+            'refresh_token' => 'refresh-token',
+            'refresh_token_expires_at' => Carbon::now()->subMinute(),
+        ]);
+
+        $this->app['config']->set('shopify-app.offline_token_interceptor', OfflineTokenInterceptorStub::class);
+        $this->app['config']->set('shopify-app.api_expiring_offline_tokens', false);
+        OfflineTokenInterceptorStub::reset();
+
+        $newRequest = $this->createAjaxRequestWithToken();
+        $result = $this->runMiddleware(VerifyShopify::class, $newRequest);
+
+        $this->assertTrue($result[0]);
+        $this->assertFalse(OfflineTokenInterceptorStub::$wasCalled);
+    }
+
+    public function testMissingOfflineTokenInterceptorSkipsExecution(): void
+    {
+        $this->ensureExpiringOfflineColumns();
+
+        factory($this->model)->create([
+            'name' => 'shop-name.myshopify.com',
+            'refresh_token' => 'refresh-token',
+            'refresh_token_expires_at' => Carbon::now()->subMinute(),
+        ]);
+
+        $this->app['config']->set('shopify-app.offline_token_interceptor', null);
+        $this->app['config']->set('shopify-app.api_expiring_offline_tokens', true);
+        OfflineTokenInterceptorStub::reset();
+
+        $newRequest = $this->createAjaxRequestWithToken();
+        $result = $this->runMiddleware(VerifyShopify::class, $newRequest);
+
+        $this->assertTrue($result[0]);
+        $this->assertFalse(OfflineTokenInterceptorStub::$wasCalled);
     }
 
     public function testTokenProcessingAndNotInstalledShop(): void
@@ -316,5 +404,45 @@ class VerifyShopifyTest extends TestCase
 
         $this->expectException(HttpException::class);
         $this->runMiddleware(VerifyShopify::class, $newRequest);
+    }
+
+    protected function createAjaxRequestWithToken()
+    {
+        $currentRequest = Request::instance();
+
+        return $currentRequest->duplicate(
+            [],
+            null,
+            null,
+            null,
+            null,
+            [
+                'HTTP_Authorization' => "Bearer {$this->buildToken()}",
+                'HTTP_X-Requested-With' => 'XMLHttpRequest',
+            ]
+        );
+    }
+
+    protected function ensureExpiringOfflineColumns(): void
+    {
+        if (Schema::hasColumn('users', 'refresh_token')
+            && Schema::hasColumn('users', 'access_token_expires_at')
+            && Schema::hasColumn('users', 'refresh_token_expires_at')) {
+            return;
+        }
+
+        Schema::table('users', function (Blueprint $table): void {
+            if (! Schema::hasColumn('users', 'refresh_token')) {
+                $table->string('refresh_token')->nullable();
+            }
+
+            if (! Schema::hasColumn('users', 'access_token_expires_at')) {
+                $table->timestamp('access_token_expires_at')->nullable();
+            }
+
+            if (! Schema::hasColumn('users', 'refresh_token_expires_at')) {
+                $table->timestamp('refresh_token_expires_at')->nullable();
+            }
+        });
     }
 }

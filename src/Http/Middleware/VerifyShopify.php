@@ -144,7 +144,44 @@ class VerifyShopify
             return $this->handleInvalidShop($request);
         }
 
+        $this->ensureOfflineAccessTokenIfNeeded();
+
         return $next($request);
+    }
+
+    protected function ensureOfflineAccessTokenIfNeeded(): void
+    {
+        if (! Util::getShopifyConfig('api_expiring_offline_tokens')) {
+            return;
+        }
+
+        $interceptorClass = Util::getShopifyConfig('offline_token_interceptor');
+        if (empty($interceptorClass) || ! class_exists($interceptorClass)) {
+            return;
+        }
+
+        $shop = $this->auth->user();
+        if (! $shop instanceof ShopModel) {
+            return;
+        }
+
+        if (empty($shop->refresh_token) || $shop->refresh_token_expires_at === null) {
+            return;
+        }
+
+        if ($shop->refresh_token_expires_at->isFuture()) {
+            return;
+        }
+
+        try {
+            app($interceptorClass)->ensureFreshAccessToken(
+                $shop->name,
+                Util::getShopifyConfig('api_key'),
+                Util::getShopifyConfig('api_secret')
+            );
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /**
