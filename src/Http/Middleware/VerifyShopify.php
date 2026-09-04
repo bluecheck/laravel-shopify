@@ -169,7 +169,10 @@ class VerifyShopify
             return;
         }
 
-        if ($shop->refresh_token_expires_at->isFuture()) {
+        $days = (int) (Util::getShopifyConfig('offline_token_refresh_before_days') ?? 3);
+        $threshold = now()->addDays(max(0, $days))->addHours(6);
+
+        if ($shop->refresh_token_expires_at->gt($threshold)) {
             return;
         }
 
@@ -177,7 +180,9 @@ class VerifyShopify
             app($interceptorClass)->ensureFreshAccessToken(
                 $shop->name,
                 Util::getShopifyConfig('api_key'),
-                Util::getShopifyConfig('api_secret')
+                Util::getShopifyConfig('api_secret'),
+                0,
+                true
             );
         } catch (\Throwable $e) {
             report($e);

@@ -242,6 +242,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Offline Token Refresh Window (VerifyShopify middleware)
+    |--------------------------------------------------------------------------
+    |
+    | Middleware forces a refresh when refresh_token_expires_at is within
+    | offline_token_refresh_before_days + offline_token_refresh_before_extra_hours.
+    |
+    */
+
+    'offline_token_refresh_before_days' => (int) env('SHOPIFY_REFRESH_TOKEN_URGENT_DAYS', 3),
+
+    /*
+    |--------------------------------------------------------------------------
     | Shopify API Redirect
     |--------------------------------------------------------------------------
     |
@@ -378,8 +390,7 @@ return [
                 'address' => env('SHOPIFY_WEBHOOK_2_ADDRESS', 'https://some-app.com/webhook/purchase'),
             ]
             ...
-        */
-    ],
+        */],
 
     /*
     |--------------------------------------------------------------------------
@@ -398,8 +409,7 @@ return [
                 'display_scope' => env('SHOPIFY_SCRIPTTAG_1_DISPLAY_SCOPE', 'online_store')
             ],
             ...
-        */
-    ],
+        */],
 
     /*
     |--------------------------------------------------------------------------
@@ -418,8 +428,7 @@ return [
                 'job' => env('AFTER_AUTHENTICATE_JOB'), // example: \App\Jobs\AfterAuthorizeJob::class
                 'inline' => env('AFTER_AUTHENTICATE_JOB_INLINE', false) // False = dispatch job for later, true = dispatch immediately
             ],
-        */
-    ],
+        */],
 
     /*
     |--------------------------------------------------------------------------
