@@ -81,6 +81,20 @@ class InstallShopTest extends TestCase
         $this->assertTrue($result['completed']);
         $this->assertNotNull($result['shop_id']);
         $this->assertNotSame($currentToken->toNative(), $shop->getAccessToken()->toNative());
+        $this->assertSame('shpat_expiring_access_token_123', $shop->password);
+        $this->assertSame('shprt_expiring_refresh_token_456', $shop->refresh_token);
+        $this->assertNotNull($shop->access_token_expires_at);
+        $this->assertNotNull($shop->refresh_token_expires_at);
+        $this->assertEqualsWithDelta(
+            $this->now->addSeconds(3600)->getTimestamp(),
+            $shop->access_token_expires_at->getTimestamp(),
+            2
+        );
+        $this->assertEqualsWithDelta(
+            $this->now->addSeconds(7776000)->getTimestamp(),
+            $shop->refresh_token_expires_at->getTimestamp(),
+            2
+        );
     }
 
     public function testWithCodeSoftDeletedShop(): void
@@ -109,5 +123,32 @@ class InstallShopTest extends TestCase
         $this->assertTrue($result['completed']);
         $this->assertNotNull($result['shop_id']);
         $this->assertNotSame($currentToken->toNative(), $shop->getAccessToken()->toNative());
+        $this->assertSame('shprt_expiring_refresh_token_456', $shop->refresh_token);
+    }
+
+    public function testWithCodeLegacyNonExpiring(): void
+    {
+        $this->app['config']->set('shopify-app.api_expiring_offline_tokens', false);
+
+        $shop = factory($this->model)->create();
+        $currentToken = $shop->getAccessToken();
+
+        $this->setApiStub();
+        ApiStub::stubResponses(['access_token']);
+
+        $result = call_user_func(
+            $this->action,
+            $shop->getDomain(),
+            '12345678'
+        );
+
+        $shop->refresh();
+
+        $this->assertTrue($result['completed']);
+        $this->assertNotSame($currentToken->toNative(), $shop->getAccessToken()->toNative());
+        $this->assertSame('12345678', $shop->password);
+        $this->assertNull($shop->refresh_token);
+        $this->assertNull($shop->access_token_expires_at);
+        $this->assertNull($shop->refresh_token_expires_at);
     }
 }

@@ -58,7 +58,7 @@ class InstallShop
     {
         // Get the shop
         $shop = $this->shopQuery->getByDomain($shopDomain, [], true);
-        $host = Request::get('host') ?? null;
+        $host = Request::get('host') ?? '';
         if ($shop === null) {
             // Shop does not exist, make them and re-get
             $shopId = $this->shopCommand->make($shopDomain, NullAccessToken::fromNative(null));
@@ -89,7 +89,33 @@ class InstallShop
 
             // Get the data and set the access token
             $data = $apiHelper->getAccessData($code);
-            $this->shopCommand->setAccessToken($shop->getId(), AccessToken::fromNative($data['access_token']));
+            $useExpiring = Util::getShopifyConfig('api_expiring_offline_tokens')
+                && $grantMode->isSame(AuthMode::OFFLINE());
+
+            if ($useExpiring) {
+                if (
+                    empty($data['access_token'])
+                    || empty($data['refresh_token'])
+                    || ! isset($data['expires_in'])
+                    || ! isset($data['refresh_token_expires_in'])
+                ) {
+                    throw new Exception('Expiring offline token response is missing required fields');
+                }
+
+                $this->shopCommand->setExpiringAccessToken(
+                    $shop->getId(),
+                    AccessToken::fromNative($data['access_token']),
+                    (string) $data['refresh_token'],
+                    (int) $data['expires_in'],
+                    (int) $data['refresh_token_expires_in']
+                );
+            } else {
+                $this->shopCommand->setAccessToken(
+                    $shop->getId(),
+                    AccessToken::fromNative($data['access_token'])
+                );
+            }
+
             $this->shopCommand->setHost($shop->getId(), $host);
 
             return [
