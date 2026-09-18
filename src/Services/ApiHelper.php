@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\URL;
 use Osiset\BasicShopifyAPI\BasicShopifyAPI;
+use Osiset\BasicShopifyAPI\Middleware\AuthRequest;
 use Osiset\BasicShopifyAPI\Options;
 use Osiset\BasicShopifyAPI\ResponseAccess;
 use Osiset\BasicShopifyAPI\Session;
@@ -72,7 +73,11 @@ class ApiHelper implements IApiHelper
                 new $sd()
             );
         }
+
+        $this->api->removeMiddleware('request:auth');
         $this->api->addMiddleware($this->ensureOfflineAccessTokenMiddleware(...));
+        $this->api->addMiddleware(new AuthRequest($this->api), 'request:auth');
+
         // Set session?
         if ($session !== null) {
             // Set the session to the shop's domain/token
