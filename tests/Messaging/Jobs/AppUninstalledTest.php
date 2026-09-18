@@ -17,7 +17,12 @@ class AppUninstalledTest extends TestCase
         $plan = factory(Util::getShopifyConfig('models.plan', Plan::class))->states('type_recurring')->create();
 
         // Create a shop attached to the plan
-        $shop = factory($this->model)->create(['plan_id' => $plan->getId()->toNative()]);
+        $shop = factory($this->model)->create([
+            'plan_id' => $plan->getId()->toNative(),
+            'refresh_token' => 'shprt_to_clear',
+            'access_token_expires_at' => now()->addHour(),
+            'refresh_token_expires_at' => now()->addDays(90),
+        ]);
 
         // Create a charge for the shop and plan
         factory(Util::getShopifyConfig('models.charge', Charge::class))->states('type_recurring')->create([
@@ -31,6 +36,7 @@ class AppUninstalledTest extends TestCase
         $this->assertTrue($shop->hasCharges());
         $this->assertNotNull($shop->plan);
         $this->assertNotEmpty($shop->password);
+        $this->assertNotEmpty($shop->refresh_token);
 
         // Run the job
         AppUninstalledJob::dispatchNow(
@@ -46,5 +52,8 @@ class AppUninstalledTest extends TestCase
         $this->assertFalse($shop->hasCharges());
         $this->assertNull($shop->plan);
         $this->assertEmpty($shop->password);
+        $this->assertNull($shop->refresh_token);
+        $this->assertNull($shop->access_token_expires_at);
+        $this->assertNull($shop->refresh_token_expires_at);
     }
 }

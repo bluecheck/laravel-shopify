@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\URL;
 use Osiset\BasicShopifyAPI\BasicShopifyAPI;
+use Osiset\BasicShopifyAPI\Middleware\AuthRequest;
 use Osiset\BasicShopifyAPI\Options;
 use Osiset\BasicShopifyAPI\ResponseAccess;
 use Osiset\BasicShopifyAPI\Session;
@@ -23,6 +24,7 @@ use Osiset\ShopifyApp\Objects\Transfers\UsageChargeDetails as UsageChargeDetails
 use Osiset\ShopifyApp\Objects\Values\ChargeReference;
 use Osiset\ShopifyApp\Objects\Values\NullableShopDomain;
 use Osiset\ShopifyApp\Util;
+use Psr\Http\Message\RequestInterface;
 
 /**
  * Basic helper class for API calls to Shopify.
@@ -71,6 +73,10 @@ class ApiHelper implements IApiHelper
                 new $sd()
             );
         }
+
+        $this->api->removeMiddleware('request:auth');
+        $this->api->addMiddleware($this->ensureOfflineAccessTokenMiddleware(...));
+        $this->api->addMiddleware(new AuthRequest($this->api), 'request:auth');
 
         // Set session?
         if ($session !== null) {
@@ -148,12 +154,65 @@ class ApiHelper implements IApiHelper
 
     /**
      * {@inheritdoc}
-     *
-     * @codeCoverageIgnore No need to retest.
      */
     public function getAccessData(string $code): ResponseAccess
     {
-        return $this->api->requestAccess($code);
+        if (! Util::getShopifyConfig('api_expiring_offline_tokens')) {
+            return $this->api->requestAccess($code);
+        }
+
+        // Test stubs / custom api_init may override requestAccess with fixture data.
+        // Production BasicShopifyAPI::requestAccess does not send expiring=1.
+        $declaringClass = (new \ReflectionMethod($this->api, 'requestAccess'))
+            ->getDeclaringClass()
+            ->getName();
+        if ($declaringClass !== BasicShopifyAPI::class) {
+            return $this->api->requestAccess($code);
+        }
+
+        return $this->exchangeCodeForExpiringToken($code);
+    }
+
+    /**
+     * Exchange an OAuth authorization code for an expiring offline access token.
+     *
+     * @param string $code The code from Shopify.
+     *
+     * @throws Exception
+     *
+     * @return ResponseAccess
+     *
+     * @see https://shopify.dev/docs/apps/build/authentication-authorization/migrate-to-expiring-offline-access-tokens
+     */
+    protected function exchangeCodeForExpiringToken(string $code): ResponseAccess
+    {
+        $options = $this->api->getOptions();
+        if ($options->getApiSecret() === null || $options->getApiKey() === null) {
+            throw new Exception('API key or secret is missing');
+        }
+
+        $url = $this->api->getRestClient()->getBaseUri()->withPath('/admin/oauth/access_token');
+        $data = [
+            'json' => [
+                'client_id' => $options->getApiKey(),
+                'client_secret' => $options->getApiSecret(),
+                'code' => $code,
+                'expiring' => '1',
+            ],
+        ];
+
+        try {
+            $response = $this->api->getClient()->request('POST', $url, $data);
+        } catch (RequestException $e) {
+            $body = $e->hasResponse()
+                ? json_decode($e->getResponse()->getBody()->getContents())
+                : null;
+            $message = $body->error_description ?? $body->error ?? $e->getMessage();
+
+            throw new Exception($message);
+        }
+
+        return $this->api->toResponse($response->getBody());
     }
 
     /**
@@ -522,6 +581,44 @@ class ApiHelper implements IApiHelper
         }
 
         return $response;
+    }
+
+    /**
+     * Refresh expiring offline access token before Admin API calls when configured.
+     */
+    protected function ensureOfflineAccessToken(): void
+    {
+        $interceptorClass = Util::getShopifyConfig('offline_token_interceptor');
+        if (empty($interceptorClass) || ! class_exists($interceptorClass)) {
+            return;
+        }
+
+        $session = $this->api->getSession();
+        if ($session === null || $session->getShop() === null) {
+            return;
+        }
+
+        $options = $this->api->getOptions();
+        $interceptor = app($interceptorClass);
+        $newToken = $interceptor->ensureFreshAccessToken(
+            $session->getShop(),
+            $options->getApiKey(),
+            $options->getApiSecret()
+        );
+
+        if ($newToken !== null && $newToken !== $session->getAccessToken()) {
+            $this->api->setSession(new Session($session->getShop(), $newToken));
+        }
+    }
+    /**
+     * @param callable(): mixed $handler
+     */
+    protected function ensureOfflineAccessTokenMiddleware(callable $handler): callable
+    {
+        return function (RequestInterface $request, array $options) use ($handler) {
+            $this->ensureOfflineAccessToken();
+            return $handler($request, $options);
+        };
     }
 
     /**

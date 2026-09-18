@@ -83,6 +83,27 @@ class Shop implements ShopCommand
     /**
      * {@inheritdoc}
      */
+    public function setExpiringAccessToken(
+        ShopIdValue $shopId,
+        AccessTokenValue $token,
+        string $refreshToken,
+        int $expiresIn,
+        int $refreshExpiresIn
+    ): bool {
+        $shop = $this->getShop($shopId);
+        $now = Carbon::now();
+        $shop->password = $token->toNative();
+        $shop->password_updated_at = $now;
+        $shop->refresh_token = $refreshToken;
+        $shop->access_token_expires_at = $now->copy()->addSeconds($expiresIn);
+        $shop->refresh_token_expires_at = $now->copy()->addSeconds($refreshExpiresIn);
+
+        return $shop->save();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function setHost(ShopIdValue $shopId, string $host): bool
     {
         $shop = $this->getShop($shopId);
@@ -99,6 +120,9 @@ class Shop implements ShopCommand
         $shop = $this->getShop($shopId);
         $planColumn = Util::getShopifyConfig('column_names.plan_id') ?? 'plan_id';
         $shop->password = '';
+        $shop->refresh_token = null;
+        $shop->access_token_expires_at = null;
+        $shop->refresh_token_expires_at = null;
         $shop->$planColumn = null;
 
         return $shop->save();

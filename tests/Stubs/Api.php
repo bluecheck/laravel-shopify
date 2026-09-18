@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Http\Response;
 use Osiset\BasicShopifyAPI\BasicShopifyAPI;
 use Osiset\BasicShopifyAPI\ResponseAccess;
+use Osiset\ShopifyApp\Util;
 
 class Api extends BasicShopifyAPI
 {
@@ -69,8 +70,12 @@ class Api extends BasicShopifyAPI
 
     public function requestAccess(string $code): ResponseAccess
     {
+        $fixture = Util::getShopifyConfig('api_expiring_offline_tokens')
+            ? 'expiring_offline_access_token'
+            : 'access_token';
+
         return new ResponseAccess(
-            json_decode(file_get_contents(__DIR__.'/../fixtures/access_token.json'), true)
+            json_decode(file_get_contents(__DIR__."/../fixtures/{$fixture}.json"), true)
         );
     }
 }
